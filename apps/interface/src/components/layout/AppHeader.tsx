@@ -1,10 +1,13 @@
 import { Github, Twitter } from "lucide-react";
 import { ModeToggle } from "../theme/ModeToggle";
+import Link from "next/link";
 
 export const AppHeader = () => {
   return (
     <div className="flex items-center h-16">
-      <div className="text-lg font-bold">Hacker News JP</div>
+      <div className="text-lg font-bold">
+        <Link href="/">Hacker News JP</Link>
+      </div>
       <div className="flex-1 flex justify-end gap-6">
         <div>
           <a href="https://github.com/moons-14/hacker-jp" target="_blank" rel="noreferrer">

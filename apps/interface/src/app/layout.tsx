@@ -24,7 +24,7 @@ export default function RootLayout({
           <div className="h-16">
             <AppHeader />
           </div>
-          <div className="flex-1">{children}</div>
+          <div className="flex-1 mb-16">{children}</div>
         </ThemeProvider>
       </body>
     </html>
