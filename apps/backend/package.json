@@ -6,6 +6,8 @@
   "dependencies": {
     "@hono/zod-validator": "^0.1.11",
     "hono": "^4.0.0",
+    "marked": "^12.0.0",
+    "webforai": "^1.0.1",
     "zod": "^3.22.4"
   },
   "devDependencies": {

@@ -1,7 +1,9 @@
 import { Hono } from 'hono'
 import { zValidator } from '@hono/zod-validator'
 import * as z from 'zod'
-import { OGPParser } from '../utils/OGPParser'
+import { OgpHandler } from '../utils/OgpHandler'
+import { htmlToMarkdown } from 'webforai'
+import { extractFirstImageUrl } from '../utils/extractFirstImageUrl'
 
 const app = new Hono()
 
@@ -76,10 +78,22 @@ app.get(
       })
     });
 
-    // console.log(articleData.url);
 
-    // const ogp = new OGPParser();
-    // new HTMLRewriter().on("meta", ogp).transform(siteRes);
+    const ogp = new OgpHandler();
+    const eleRes = new HTMLRewriter().on("meta", ogp).transform(siteRes);
+
+    const html = await eleRes.text();
+
+    const markdown = htmlToMarkdown(html, { solveLinks: articleData.url });
+
+    let ogpImage = ogp.image;
+    if (ogpImage === "") {
+      const imgMatch = extractFirstImageUrl(markdown);
+      if (imgMatch) {
+        ogpImage = imgMatch;
+      }
+    }
+
 
 
     // c.header("Cache-Control", "public, max-age=31536000, immutable");
@@ -90,7 +104,7 @@ app.get(
         title: "",
         description: "",
       },
-      image: ""
+      image: ogpImage || ""
     })
   }
 )
