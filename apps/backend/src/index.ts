@@ -4,8 +4,15 @@ import * as z from 'zod'
 import { OgpHandler } from '../utils/OgpHandler'
 import { htmlToMarkdown } from 'webforai'
 import { extractFirstImageUrl } from '../utils/extractFirstImageUrl'
+import { Ai } from '@cloudflare/ai'
 
-const app = new Hono()
+type HonoConfig = {
+  Bindings: {
+    CF_WORKERS_AI_TOKEN: string
+  }
+};
+
+const app = new Hono<HonoConfig>();
 
 app.get(
   '/articles/:id',
@@ -17,6 +24,8 @@ app.get(
   ),
   async (c) => {
     const { id } = c.req.valid('param')
+
+    const ai = new Ai(c.env.CF_WORKERS_AI_TOKEN)
 
     const emptyResult = {
       by: "",
@@ -66,6 +75,8 @@ app.get(
       return c.json(emptyResult)
     }
 
+    // 
+
     const siteRes = await fetch(articleData.url).catch((err) => {
       // TODO:タイトルのみ翻訳して返す
       return c.json({
@@ -94,15 +105,14 @@ app.get(
       }
     }
 
-
-
     // c.header("Cache-Control", "public, max-age=31536000, immutable");
+
 
     return c.json({
       ...articleData,
       ja: {
         title: "",
-        description: "",
+        description: ogp.description,
       },
       image: ogpImage || ""
     })

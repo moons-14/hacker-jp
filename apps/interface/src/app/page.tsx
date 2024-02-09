@@ -1,11 +1,8 @@
 import { ArticleCard } from "@/components/card/ArticleCard";
-import { ArticleCardWithoutImage } from "@/components/card/ArticleCardWithoutImage";
 import { LoadingCard } from "@/components/card/LoadingCard";
 import { TopCard } from "@/components/card/TopCard";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
-import { Suspense } from "react";
 
 async function getArticles() {
   const res = await fetch("https://hacker-news.firebaseio.com/v0/topstories.json?print=pretty");
@@ -31,15 +28,9 @@ export default async function Home({
             <TopCard id={splitArticles[0].toString()} />
           </LoadingCard>
 
-          {splitArticles.slice(1, 20).map((articleId) => (
+          {splitArticles.slice(1, 50).map((articleId) => (
             <LoadingCard>
               <ArticleCard id={articleId.toString()} />
-            </LoadingCard>
-          ))}
-
-          {splitArticles.slice(20, 50).map((articleId) => (
-            <LoadingCard>
-              <ArticleCardWithoutImage id={articleId.toString()} />
             </LoadingCard>
           ))}
         </>
@@ -49,7 +40,7 @@ export default async function Home({
         <>
           {splitArticles.map((articleId) => (
             <LoadingCard>
-              <ArticleCardWithoutImage id={articleId.toString()} />
+              <ArticleCard id={articleId.toString()} />
             </LoadingCard>
           ))}
         </>

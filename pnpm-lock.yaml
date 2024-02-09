@@ -14,6 +14,9 @@ importers:
 
   apps/backend:
     dependencies:
+      '@cloudflare/ai':
+        specifier: ^1.0.50
+        version: 1.0.50
       '@hono/zod-validator':
         specifier: ^0.1.11
         version: 0.1.11(hono@4.0.0)(zod@3.22.4)
@@ -211,6 +214,10 @@ packages:
     requiresBuild: true
     dev: true
     optional: true
+
+  /@cloudflare/ai@1.0.50:
+    resolution: {integrity: sha512-lgTrP514G9VRXEhWWDQ80gTs5latLBzoc8ouJKOEKRw6SPtEjHHrMkPv+WOAsamBOnXCjdBV63MVE2VCJ6PE7Q==}
+    dev: false
 
   /@cloudflare/kv-asset-handler@0.2.0:
     resolution: {integrity: sha512-MVbXLbTcAotOPUj0pAMhVtJ+3/kFkwJqc5qNOleOZTv6QkZZABDMS21dSrSlVswEHwrpWC03e4fWytjqKvuE2A==}
