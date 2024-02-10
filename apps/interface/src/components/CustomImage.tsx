@@ -14,5 +14,5 @@ export const CustomImage = ({
 }) => {
   // biome-ignore lint/a11y/useAltText: <explanation>
   // biome-ignore lint/suspicious/noAssignInExpressions: <explanation>
-  return <img src={src} alt={alt} onError={(e) => (e.currentTarget.src = "/ogp.jpg")} {...props} />;
+  return <img src={src} alt={""} onError={(e) => (e.currentTarget.src = "/ogp.jpg")} {...props} />;
 };
