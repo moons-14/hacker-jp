@@ -14,17 +14,23 @@ export const metadata: Metadata = {
 
 export default function RootLayout({
   children,
+  modal,
 }: Readonly<{
   children: React.ReactNode;
+  modal: React.ReactNode;
 }>) {
   return (
     <html lang="ja" suppressHydrationWarning>
-      <body className={cn(noto_sans_jp.className, "flex flex-col min-h-screen container mx-auto px-4")}>
+      <body className={cn(noto_sans_jp.className)}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-          <div className="h-16">
-            <AppHeader />
+          <div className="flex flex-col min-h-screen container mx-auto px-4">
+            <div className="h-16">
+              <AppHeader />
+            </div>
+            <div className="flex-1 mb-16">{children}</div>
           </div>
-          <div className="flex-1 mb-16">{children}</div>
+
+          {modal}
         </ThemeProvider>
       </body>
     </html>

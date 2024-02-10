@@ -29,7 +29,7 @@ export default async function Home({
           </LoadingCard>
 
           {splitArticles.slice(1, 50).map((articleId) => (
-            <LoadingCard>
+            <LoadingCard key={articleId}>
               <ArticleCard id={articleId.toString()} />
             </LoadingCard>
           ))}
@@ -39,7 +39,7 @@ export default async function Home({
       {validatedPageNum > 1 && (
         <>
           {splitArticles.map((articleId) => (
-            <LoadingCard>
+            <LoadingCard key={articleId}>
               <ArticleCard id={articleId.toString()} />
             </LoadingCard>
           ))}
