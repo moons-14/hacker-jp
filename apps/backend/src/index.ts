@@ -1,21 +1,27 @@
 import { Hono } from 'hono'
 import { zValidator } from '@hono/zod-validator'
 import * as z from 'zod'
-import { OgpHandler } from '../utils/OgpHandler'
+import { OgpHandler } from './utils/OgpHandler'
 import { htmlToMarkdown } from 'webforai'
-import { extractFirstImageUrl } from '../utils/extractFirstImageUrl'
+import { extractFirstImageUrl } from './utils/extractFirstImageUrl'
 import { Ai } from '@cloudflare/ai'
+import { HackerNewsApiResult } from './types/hackerNewsApi'
+import { translate } from './utils/translate'
 
 type HonoConfig = {
   Bindings: {
-    CF_WORKERS_AI_TOKEN: string
+    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+    AI: any;
+    TLANSLATE_API_KEY: string;
+    TLANSLATE_API_SECRET: string;
+    TLANSLATE_API_LOGIN_NAME: string;
   }
 };
 
 const app = new Hono<HonoConfig>();
 
 app.get(
-  '/articles/:id',
+  '/article/:id',
   zValidator(
     'param',
     z.object({
@@ -25,77 +31,85 @@ app.get(
   async (c) => {
     const { id } = c.req.valid('param')
 
-    const ai = new Ai(c.env.CF_WORKERS_AI_TOKEN)
+    const ai = new Ai(c.env.AI)
 
-    const emptyResult = {
-      by: "",
-      descendants: 0,
-      id: 0,
-      kids: [],
-      score: 0,
-      time: 0,
-      title: "",
-      type: "",
-      url: "",
-      ja: {
-        title: "",
-        description: "",
-      },
-      image: ""
-    }
-
-    const res = await fetch(`https://hacker-news.firebaseio.com/v0/item/${id}.json?print=pretty`).catch((err) => {
-      return c.json(emptyResult)
-    });
-
-    const data = await res.json();
-
-    if (!data) {
-      return c.json(emptyResult)
-    }
-
-    const articleData = data as {
-      by: string;
-      descendants: number;
-      id: number;
-      kids: number[];
-      score: number;
-      time: number;
-      title: string;
-      type: string;
-      url: string;
-    }
-
-    if (articleData.type !== "story") {
-      return c.json(emptyResult)
-    }
-
-    if (!articleData.url) {
-      //TODO:textの翻訳を返す
-      return c.json(emptyResult)
-    }
-
-    // 
-
-    const siteRes = await fetch(articleData.url).catch((err) => {
-      // TODO:タイトルのみ翻訳して返す
+    let hackerNewsApiResult: HackerNewsApiResult;
+    try {
+      const res = await fetch(`https://hacker-news.firebaseio.com/v0/item/${id}.json?print=pretty`);
+      hackerNewsApiResult = await res.json();
+    } catch {
       return c.json({
-        ...articleData,
-        ja: {
-          title: "",
-          description: "",
-        },
-        image: ""
+        success: false,
       })
-    });
+    }
+
+    if (hackerNewsApiResult.type !== "story") {
+      return c.json({
+        success: false,
+      })
+    }
+
+    if (!hackerNewsApiResult.url) {
+      //TODO:textの翻訳を返す
+      return c.json({
+        success: false,
+      })
+    }
 
 
+    const articleUrl = new URL(hackerNewsApiResult.url);
+
+    let articleSiteResponse: Response;
     const ogp = new OgpHandler();
-    const eleRes = new HTMLRewriter().on("meta", ogp).transform(siteRes);
+    let html: string;
+    try {
 
-    const html = await eleRes.text();
+      articleSiteResponse = await fetch(articleUrl.href);
+      // biome-ignore lint/correctness/noUndeclaredVariables: <explanation>
+      const eleRes = new HTMLRewriter().on("meta", ogp).transform(articleSiteResponse);
 
-    const markdown = htmlToMarkdown(html, { solveLinks: articleData.url });
+      html = await eleRes.text();
+
+    } catch (e) {
+
+      console.error(e);
+
+      try {
+        const translateResult = await ai.run('@cf/meta/m2m100-1.2b', {
+          text: hackerNewsApiResult.title,
+          source_lang: "english", // defaults to english
+          target_lang: "japanese"
+        })
+
+        if (translateResult.translated_text) {
+
+          // TODO:タイトルのみを翻訳する
+          return c.json({
+            ...hackerNewsApiResult,
+            success: true,
+            ja: {
+              title: translateResult.translated_text,
+              description: ""
+            },
+            image: ""
+          })
+        }
+
+        return c.json({
+          success: false,
+        })
+
+      } catch {
+
+        return c.json({
+          success: false,
+        })
+
+      }
+
+    }
+
+    const markdown = htmlToMarkdown(html, { solveLinks: hackerNewsApiResult.url });
 
     let ogpImage = ogp.image;
     if (ogpImage === "") {
@@ -107,16 +121,39 @@ app.get(
 
     // c.header("Cache-Control", "public, max-age=31536000, immutable");
 
+    try {
 
-    return c.json({
-      ...articleData,
-      ja: {
-        title: "",
-        description: ogp.description,
-      },
-      image: ogpImage || ""
-    })
+      const translatedTitleResult = translate(hackerNewsApiResult.title, c.env.TLANSLATE_API_KEY, c.env.TLANSLATE_API_SECRET, c.env.TLANSLATE_LOGIN_NAME)
+
+      if (!translatedTitleResult) {
+        throw new Error("failed to translate title");
+      }
+
+
+      return c.json({
+        ...hackerNewsApiResult,
+        success: true,
+        ja: {
+          title: translatedTitleResult,
+          description: "",
+        },
+        image: ogpImage,
+      })
+    } catch (e) {
+      console.error(e);
+
+      return c.json({
+        success: false,
+      })
+    }
+
   }
 )
+
+app.get("/test", async (c) => {
+  const translatedTitleResult = await translate("hello! This is a example Text.", c.env.TLANSLATE_API_KEY, c.env.TLANSLATE_API_SECRET, c.env.TLANSLATE_API_LOGIN_NAME)
+
+  return c.json(translatedTitleResult)
+});
 
 export default app

@@ -27,7 +27,7 @@ export async function getArticle(id: string): Promise<
 > {
   let res: Response;
   try {
-    res = await fetch(`http://localhost:8787/articles/${id}`);
+    res = await fetch(`${process.env.BACKEND_URL}/article/${id}`);
 
     const data = {
       success: true,
