@@ -9,6 +9,7 @@ import { translate } from './utils/translate'
 import { extractTextWithoutLinksAndImages } from './utils/removeLinksAndImagesFromMarkdown'
 import { summarize } from './utils/summarize'
 import { cache } from 'hono/cache'
+import { cors } from 'hono/cors'
 
 type HonoConfig = {
   Bindings: {
@@ -28,6 +29,18 @@ app.get(
   cache({
     cacheName: 'hacker-jp',
     cacheControl: 'max-age=31536000',
+  })
+)
+
+app.use(
+  '/article/*',
+  cors({
+    origin: 'http://hacker-jp.moons14.com',
+    allowHeaders: ['X-Custom-Header', 'Upgrade-Insecure-Requests'],
+    allowMethods: ['GET'],
+    exposeHeaders: ['Content-Length', 'X-Kuma-Revision'],
+    maxAge: 600,
+    credentials: true,
   })
 )
 
