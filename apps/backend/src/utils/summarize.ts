@@ -20,7 +20,7 @@ export const summarize = async (markdown: string, accountId: string, token: stri
                 },
                 {
                     role: "user",
-                    content: `# Given text\n \`\`\`\n${markdown}\n\`\`\` ¥n¥n # Summarise Text\n`,
+                    content: `# Given text\n \`\`\`\n${markdown}\n\`\`\` ¥n¥n # Summarise Text\n This is a summary of the given text.`,
                 }
             ],
             stream: false,
@@ -28,9 +28,14 @@ export const summarize = async (markdown: string, accountId: string, token: stri
         })
     }).then((res) => res.json());
 
+    console.log(response)
     if (!response.result.response) {
         throw new Error("failed to generate summary");
     }
 
-    return response.result.response;
+    const translatedText = response.result.response;
+
+    const summary = translatedText.split(":")[1];
+
+    return summary;
 }

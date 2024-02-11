@@ -10,6 +10,7 @@ import { extractTextWithoutLinksAndImages } from './utils/removeLinksAndImagesFr
 import { summarize } from './utils/summarize'
 import { cache } from 'hono/cache'
 import { cors } from 'hono/cors'
+import { cfTranslate } from './utils/cfTranslate'
 
 type HonoConfig = {
   Bindings: {
@@ -28,22 +29,24 @@ const app = new Hono<HonoConfig>();
 app.get(
   '/article/*',
   cache({
-    cacheName: 'hacker-jp',
+    cacheName: 'hacker-jp-v9',
     cacheControl: 'max-age=31536000',
   })
 )
 
-app.use(
-  '/article/*',
-  cors({
-    origin: ['https://hacker-jp.moons14.com'],
-    allowHeaders: ['X-Custom-Header', 'Upgrade-Insecure-Requests'],
-    allowMethods: ['GET'],
-    exposeHeaders: ['Content-Length', 'X-Kuma-Revision'],
-    maxAge: 600,
-    credentials: true,
-  })
-)
+app.use('/article/*', cors())
+
+// app.use(
+//   '/article/*',
+//   cors({
+//     origin: ['https://hacker-jp.moons14.com'],
+//     allowHeaders: ['X-Custom-Header', 'Upgrade-Insecure-Requests'],
+//     allowMethods: ['GET'],
+//     exposeHeaders: ['Content-Length', 'X-Kuma-Revision'],
+//     maxAge: 600,
+//     credentials: true,
+//   })
+// )
 
 app.get(
   '/article/:id',
@@ -100,7 +103,7 @@ app.get(
       console.error(e);
 
       try {
-        const translateResult = await translate(hackerNewsApiResult.title, c.env.TLANSLATE_API_KEY, c.env.TLANSLATE_API_SECRET, c.env.TLANSLATE_API_LOGIN_NAME)
+        const translateResult = await cfTranslate(hackerNewsApiResult.title, c.env.CF_ACCOUNT_ID, c.env.CF_WORKERS_AI_TOKEN)
 
         if (translateResult) {
 
@@ -142,7 +145,7 @@ app.get(
 
     try {
 
-      const translatedTitleResult = await translate(hackerNewsApiResult.title, c.env.TLANSLATE_API_KEY, c.env.TLANSLATE_API_SECRET, c.env.TLANSLATE_API_LOGIN_NAME)
+      const translatedTitleResult = await cfTranslate(hackerNewsApiResult.title, c.env.CF_ACCOUNT_ID, c.env.CF_WORKERS_AI_TOKEN)
 
       if (!translatedTitleResult) {
         throw new Error("failed to translate title");
@@ -158,13 +161,29 @@ app.get(
       const summaryDescriptionResult = await summarize(plainText, c.env.CF_ACCOUNT_ID, c.env.CF_WORKERS_AI_TOKEN)
 
       if (!summaryDescriptionResult) {
-        throw new Error("failed to generate summary");
+        return c.json({
+          ...hackerNewsApiResult,
+          success: true,
+          ja: {
+            title: translatedTitleResult,
+            description: ""
+          },
+          image: ogpImage,
+        })
       }
 
-      const summaryTranslatedResult = await translate(summaryDescriptionResult, c.env.TLANSLATE_API_KEY, c.env.TLANSLATE_API_SECRET, c.env.TLANSLATE_API_LOGIN_NAME)
+      const summaryTranslatedResult = await cfTranslate(summaryDescriptionResult, c.env.CF_ACCOUNT_ID, c.env.CF_WORKERS_AI_TOKEN)
 
       if (!summaryTranslatedResult) {
-        throw new Error("failed to translate summary");
+        return c.json({
+          ...hackerNewsApiResult,
+          success: true,
+          ja: {
+            title: translatedTitleResult,
+            description: summaryDescriptionResult
+          },
+          image: ogpImage,
+        })
       }
 
       return c.json({
