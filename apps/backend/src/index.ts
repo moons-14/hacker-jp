@@ -65,20 +65,20 @@ app.get(
     } catch {
       return c.json({
         success: false,
-      })
+      }, 404)
     }
 
     if (hackerNewsApiResult.type !== "story") {
       return c.json({
         success: false,
-      })
+      }, 404)
     }
 
     if (!hackerNewsApiResult.url) {
       //TODO:textの翻訳を返す
       return c.json({
         success: false,
-      })
+      }, 500)
     }
 
 
@@ -118,13 +118,13 @@ app.get(
 
         return c.json({
           success: false,
-        })
+        }, 500)
 
       } catch {
 
         return c.json({
           success: false,
-        })
+        }, 500)
 
       }
 

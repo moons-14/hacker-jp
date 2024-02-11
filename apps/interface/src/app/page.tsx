@@ -36,9 +36,12 @@ export async function getArticle(id: string): Promise<
   try {
     res = await fetch(`${process.env.BACKEND_URL}/article/${id}`);
 
+    const jsonData = await res.json();
+
+    console.log(jsonData);
     const data = {
       success: true,
-      ...(await res.json()),
+      ...jsonData,
     };
 
     return data;
@@ -54,7 +57,7 @@ export default async function Home({
 }: {
   searchParams: { [key: string]: string | string[] | undefined };
 }) {
-  const pageNum = searchParams.page || 1;
+  const pageNum = searchParams?.page || 1;
   const validatedPageNum = typeof pageNum === "string" ? (parseInt(pageNum) > 25 ? 25 : parseInt(pageNum)) : 1;
   const articles = await getArticles();
 

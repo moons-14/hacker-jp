@@ -37,7 +37,9 @@ export const translate = async (text: string, ApiKey: string, ApiSecret: string,
         body: translateFormData
     }).then((res) => res.json())
 
-    console.log(translatedTextResult)
+    if (!translatedTextResult.resultset.result.text) {
+        console.log(translatedTextResult)
+    }
 
     const translatedText = translatedTextResult.resultset.result.text;
 

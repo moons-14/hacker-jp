@@ -7,7 +7,7 @@ export default async function Home({
 }: {
   searchParams: { [key: string]: string | string[] | undefined };
 }) {
-  const pageNum = searchParams.page || 1;
+  const pageNum = searchParams?.page || 1;
   const validatedPageNum = typeof pageNum === "string" ? (parseInt(pageNum) > 25 ? 25 : parseInt(pageNum)) : 1;
 
   return (
