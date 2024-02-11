@@ -4,22 +4,32 @@ import * as z from 'zod'
 import { OgpHandler } from './utils/OgpHandler'
 import { htmlToMarkdown } from 'webforai'
 import { extractFirstImageUrl } from './utils/extractFirstImageUrl'
-import { Ai } from '@cloudflare/ai'
 import { HackerNewsApiResult } from './types/hackerNewsApi'
 import { translate } from './utils/translate'
 import { extractTextWithoutLinksAndImages } from './utils/removeLinksAndImagesFromMarkdown'
+import { summarize } from './utils/summarize'
+import { cache } from 'hono/cache'
 
 type HonoConfig = {
   Bindings: {
-    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-    AI: any;
     TLANSLATE_API_KEY: string;
     TLANSLATE_API_SECRET: string;
     TLANSLATE_API_LOGIN_NAME: string;
+    CF_ACCOUNT_ID: string;
+    CF_WORKERS_AI_TOKEN: string;
   }
 };
 
 const app = new Hono<HonoConfig>();
+
+
+app.get(
+  '/article/*',
+  cache({
+    cacheName: 'hacker-jp',
+    cacheControl: 'max-age=31536000',
+  })
+)
 
 app.get(
   '/article/:id',
@@ -30,9 +40,9 @@ app.get(
     })
   ),
   async (c) => {
-    const { id } = c.req.valid('param')
+    const { id } = c.req.valid('param');
 
-    const ai = new Ai(c.env.AI)
+    c.header("Cache-Control", "public, max-age=31536000, immutable");
 
     let hackerNewsApiResult: HackerNewsApiResult;
     try {
@@ -116,8 +126,6 @@ app.get(
       }
     }
 
-    // c.header("Cache-Control", "public, max-age=31536000, immutable");
-
     try {
 
       const translatedTitleResult = await translate(hackerNewsApiResult.title, c.env.TLANSLATE_API_KEY, c.env.TLANSLATE_API_SECRET, c.env.TLANSLATE_API_LOGIN_NAME)
@@ -133,26 +141,13 @@ app.get(
         plainText = plainText.slice(0, 4000);
       }
 
-      const summaryDescriptionResult = await ai.run('@cf/meta/llama-2-7b-chat-fp16', {
-        messages: [
-          {
-            role: "system",
-            content: "Generate a summary based on the given text. \nOutput only the summary.",
-          },
-          {
-            role: "user",
-            content: `# Given text\n \`\`\`\n${plainText}\n\`\`\` ¥n¥n # Summarise Text\n`,
-          }
-        ],
-        stream: false,
-        max_tokens: 3072
-      });
+      const summaryDescriptionResult = await summarize(plainText, c.env.CF_ACCOUNT_ID, c.env.CF_WORKERS_AI_TOKEN)
 
-      if (!summaryDescriptionResult.response) {
+      if (!summaryDescriptionResult) {
         throw new Error("failed to generate summary");
       }
 
-      const summaryTranslatedResult = await translate(summaryDescriptionResult.response, c.env.TLANSLATE_API_KEY, c.env.TLANSLATE_API_SECRET, c.env.TLANSLATE_API_LOGIN_NAME)
+      const summaryTranslatedResult = await translate(summaryDescriptionResult, c.env.TLANSLATE_API_KEY, c.env.TLANSLATE_API_SECRET, c.env.TLANSLATE_API_LOGIN_NAME)
 
       if (!summaryTranslatedResult) {
         throw new Error("failed to translate summary");

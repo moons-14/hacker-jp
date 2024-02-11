@@ -15,10 +15,10 @@ export default async function Home({
   searchParams: { [key: string]: string | string[] | undefined };
 }) {
   const pageNum = searchParams.page || 1;
-  const validatedPageNum = typeof pageNum === "string" ? (parseInt(pageNum) > 10 ? 10 : parseInt(pageNum)) : 1;
+  const validatedPageNum = typeof pageNum === "string" ? (parseInt(pageNum) > 25 ? 25 : parseInt(pageNum)) : 1;
   const articles = await getArticles();
 
-  const splitArticles = articles.slice((validatedPageNum - 1) * 50, validatedPageNum * 50);
+  const splitArticles = articles.slice((validatedPageNum - 1) * 20, validatedPageNum * 20);
 
   return (
     <>
@@ -28,8 +28,8 @@ export default async function Home({
             <TopCard id={splitArticles[0].toString()} />
           </LoadingCard>
 
-          {splitArticles.slice(1, 50).map((articleId) => (
-            <LoadingCard key={articleId}>
+          {splitArticles.slice(1, 20).map((articleId) => (
+            <LoadingCard key={articleId.toString()}>
               <ArticleCard id={articleId.toString()} />
             </LoadingCard>
           ))}
@@ -39,14 +39,14 @@ export default async function Home({
       {validatedPageNum > 1 && (
         <>
           {splitArticles.map((articleId) => (
-            <LoadingCard key={articleId}>
+            <LoadingCard key={articleId.toString()}>
               <ArticleCard id={articleId.toString()} />
             </LoadingCard>
           ))}
         </>
       )}
 
-      {validatedPageNum < 10 && (
+      {validatedPageNum < 25 && (
         <div className="w-full flex justify-center mt-8">
           <Link href={`/?page=${validatedPageNum + 1}`}>
             <Button>次のページ</Button>
