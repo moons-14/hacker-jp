@@ -1,7 +1,7 @@
 import { ArticleCard } from "@/components/card/ArticleCard";
-import { LoadingCard } from "@/components/card/LoadingCard";
 import { TopCard } from "@/components/card/TopCard";
 import { Button } from "@/components/ui/button";
+import { ArticleResult } from "@/types/articleResult";
 import Link from "next/link";
 
 async function getArticles() {
@@ -9,6 +9,46 @@ async function getArticles() {
   const data = await res.json();
   return data as number[];
 }
+
+export async function getArticle(id: string): Promise<
+  | {
+      success: true;
+      by: string;
+      descendants: number;
+      id: number;
+      kids: number[];
+      score: number;
+      time: number;
+      title: string;
+      type: string;
+      url: string;
+      ja: {
+        title: string;
+        description: string;
+      };
+      image: string;
+    }
+  | {
+      success: false;
+    }
+> {
+  let res: Response;
+  try {
+    res = await fetch(`${process.env.BACKEND_URL}/article/${id}`);
+
+    const data = {
+      success: true,
+      ...(await res.json()),
+    };
+
+    return data;
+  } catch {
+    return {
+      success: false,
+    };
+  }
+}
+
 export default async function Home({
   searchParams,
 }: {
@@ -20,28 +60,29 @@ export default async function Home({
 
   const splitArticles = articles.slice((validatedPageNum - 1) * 20, validatedPageNum * 20);
 
+  const articleDataList: ArticleResult[] = [];
+
+  for (const article of splitArticles) {
+    const result = await getArticle(article.toString());
+    articleDataList.push(result);
+  }
+
   return (
     <>
       {validatedPageNum === 1 && (
         <>
-          <LoadingCard>
-            <TopCard id={splitArticles[0].toString()} />
-          </LoadingCard>
+          {articleDataList.length > 0 && articleDataList[0].success && <TopCard data={articleDataList[0]} />}
 
-          {splitArticles.slice(1, 20).map((articleId) => (
-            <LoadingCard key={articleId.toString()}>
-              <ArticleCard id={articleId.toString()} />
-            </LoadingCard>
+          {articleDataList.slice(1, 20).map((_articleData) => (
+            <>{_articleData.success && <ArticleCard data={_articleData} />}</>
           ))}
         </>
       )}
 
       {validatedPageNum > 1 && (
         <>
-          {splitArticles.map((articleId) => (
-            <LoadingCard key={articleId.toString()}>
-              <ArticleCard id={articleId.toString()} />
-            </LoadingCard>
+          {articleDataList.map((_articleData) => (
+            <>{_articleData.success && <ArticleCard data={_articleData} />}</>
           ))}
         </>
       )}

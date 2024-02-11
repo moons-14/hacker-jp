@@ -13,6 +13,7 @@ import { cors } from 'hono/cors'
 
 type HonoConfig = {
   Bindings: {
+    QUEUE: Queue,
     TLANSLATE_API_KEY: string;
     TLANSLATE_API_SECRET: string;
     TLANSLATE_API_LOGIN_NAME: string;
@@ -35,7 +36,7 @@ app.get(
 app.use(
   '/article/*',
   cors({
-    origin: 'http://hacker-jp.moons14.com',
+    origin: ['https://hacker-jp.moons14.com'],
     allowHeaders: ['X-Custom-Header', 'Upgrade-Insecure-Requests'],
     allowMethods: ['GET'],
     exposeHeaders: ['Content-Length', 'X-Kuma-Revision'],

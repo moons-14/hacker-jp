@@ -1,6 +1,4 @@
-import { Suspense } from "react";
-
-const LoadingAnimationCard = () => {
+export const LoadingCard = () => {
   return (
     <div className="p-4 h-[200px]">
       <div className="animate-pulse space-y-4">
@@ -12,13 +10,5 @@ const LoadingAnimationCard = () => {
         </div>
       </div>
     </div>
-  );
-};
-
-export const LoadingCard = ({ children }: { children: React.ReactNode }) => {
-  return (
-    <>
-      <Suspense fallback={<LoadingAnimationCard />}>{children}</Suspense>
-    </>
   );
 };
