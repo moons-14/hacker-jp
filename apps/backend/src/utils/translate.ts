@@ -26,10 +26,18 @@ export const translate = async (text: string, ApiKey: string, ApiSecret: string,
     translateFormData.append('api_name', 'mt');
     translateFormData.append('api_param', 'news_en_ja');
 
-    const translatedText = await fetch(`${ApiBaseUrl}/api/`, {
+    const translatedTextResult: {
+        resultset: {
+            result: {
+                text: string;
+            }
+        }
+    } = await fetch(`${ApiBaseUrl}/api/`, {
         method: 'POST',
         body: translateFormData
     }).then((res) => res.json())
+
+    const translatedText = translatedTextResult.resultset.result.text;
 
     return translatedText;
 }

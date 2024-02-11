@@ -7,6 +7,7 @@ import { extractFirstImageUrl } from './utils/extractFirstImageUrl'
 import { Ai } from '@cloudflare/ai'
 import { HackerNewsApiResult } from './types/hackerNewsApi'
 import { translate } from './utils/translate'
+import { extractTextWithoutLinksAndImages } from './utils/removeLinksAndImagesFromMarkdown'
 
 type HonoConfig = {
   Bindings: {
@@ -75,20 +76,16 @@ app.get(
       console.error(e);
 
       try {
-        const translateResult = await ai.run('@cf/meta/m2m100-1.2b', {
-          text: hackerNewsApiResult.title,
-          source_lang: "english", // defaults to english
-          target_lang: "japanese"
-        })
+        const translateResult = await translate(hackerNewsApiResult.title, c.env.TLANSLATE_API_KEY, c.env.TLANSLATE_API_SECRET, c.env.TLANSLATE_API_LOGIN_NAME)
 
-        if (translateResult.translated_text) {
+        if (translateResult) {
 
           // TODO:タイトルのみを翻訳する
           return c.json({
             ...hackerNewsApiResult,
             success: true,
             ja: {
-              title: translateResult.translated_text,
+              title: translateResult,
               description: ""
             },
             image: ""
@@ -123,19 +120,50 @@ app.get(
 
     try {
 
-      const translatedTitleResult = translate(hackerNewsApiResult.title, c.env.TLANSLATE_API_KEY, c.env.TLANSLATE_API_SECRET, c.env.TLANSLATE_LOGIN_NAME)
+      const translatedTitleResult = await translate(hackerNewsApiResult.title, c.env.TLANSLATE_API_KEY, c.env.TLANSLATE_API_SECRET, c.env.TLANSLATE_API_LOGIN_NAME)
 
       if (!translatedTitleResult) {
         throw new Error("failed to translate title");
       }
 
+      let plainText = await extractTextWithoutLinksAndImages(markdown);
+
+      // 5000文字以上の場合は省略
+      if (plainText.length > 4000) {
+        plainText = plainText.slice(0, 4000);
+      }
+
+      const summaryDescriptionResult = await ai.run('@cf/meta/llama-2-7b-chat-fp16', {
+        messages: [
+          {
+            role: "system",
+            content: "Generate a summary based on the given text. \nOutput only the summary.",
+          },
+          {
+            role: "user",
+            content: `# Given text\n \`\`\`\n${plainText}\n\`\`\` ¥n¥n # Summarise Text\n`,
+          }
+        ],
+        stream: false,
+        max_tokens: 3072
+      });
+
+      if (!summaryDescriptionResult.response) {
+        throw new Error("failed to generate summary");
+      }
+
+      const summaryTranslatedResult = await translate(summaryDescriptionResult.response, c.env.TLANSLATE_API_KEY, c.env.TLANSLATE_API_SECRET, c.env.TLANSLATE_API_LOGIN_NAME)
+
+      if (!summaryTranslatedResult) {
+        throw new Error("failed to translate summary");
+      }
 
       return c.json({
         ...hackerNewsApiResult,
         success: true,
         ja: {
           title: translatedTitleResult,
-          description: "",
+          description: summaryTranslatedResult.replace(/\n/g, "")
         },
         image: ogpImage,
       })
@@ -149,11 +177,5 @@ app.get(
 
   }
 )
-
-app.get("/test", async (c) => {
-  const translatedTitleResult = await translate("hello! This is a example Text.", c.env.TLANSLATE_API_KEY, c.env.TLANSLATE_API_SECRET, c.env.TLANSLATE_API_LOGIN_NAME)
-
-  return c.json(translatedTitleResult)
-});
 
 export default app
