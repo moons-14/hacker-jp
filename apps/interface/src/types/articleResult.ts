@@ -1,5 +1,5 @@
-export type ArticleSuccessResult = {
-    status: "success";
+export type ArticleResult = {
+    success: true;
     by: string;
     descendants: number;
     id: number;
@@ -15,9 +15,6 @@ export type ArticleSuccessResult = {
     };
     image: string;
 }
-export type ArticleResult = ArticleSuccessResult
     | {
-        status: "error";
-    } | {
-        status: "loading";
+        success: false;
     }

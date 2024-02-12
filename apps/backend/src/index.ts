@@ -5,12 +5,11 @@ import { OgpHandler } from './utils/OgpHandler'
 import { htmlToMarkdown } from 'webforai'
 import { extractFirstImageUrl } from './utils/extractFirstImageUrl'
 import { HackerNewsApiResult } from './types/hackerNewsApi'
-import { translate } from './utils/translate'
 import { extractTextWithoutLinksAndImages } from './utils/removeLinksAndImagesFromMarkdown'
-import { summarize } from './utils/summarize'
-import { cache } from 'hono/cache'
 import { cors } from 'hono/cors'
 import { cfTranslate } from './utils/cfTranslate'
+import { hfSummarize } from './utils/hfSummarize'
+import { cache } from 'hono/cache'
 
 type HonoConfig = {
   Bindings: {
@@ -20,6 +19,7 @@ type HonoConfig = {
     TLANSLATE_API_LOGIN_NAME: string;
     CF_ACCOUNT_ID: string;
     CF_WORKERS_AI_TOKEN: string;
+    HF_TOKEN: string;
   }
 };
 
@@ -29,12 +29,12 @@ const app = new Hono<HonoConfig>();
 app.get(
   '/article/*',
   cache({
-    cacheName: 'hacker-jp-v9',
+    cacheName: 'hacker-jp-v10',
     cacheControl: 'max-age=31536000',
   })
 )
 
-app.use('/article/*', cors())
+// app.use('/article/*', cors())
 
 // app.use(
 //   '/article/*',
@@ -158,7 +158,7 @@ app.get(
         plainText = plainText.slice(0, 4000);
       }
 
-      const summaryDescriptionResult = await summarize(plainText, c.env.CF_ACCOUNT_ID, c.env.CF_WORKERS_AI_TOKEN)
+      const summaryDescriptionResult = await hfSummarize(plainText, c.env.HF_TOKEN)
 
       if (!summaryDescriptionResult) {
         return c.json({
@@ -205,5 +205,6 @@ app.get(
 
   }
 )
+
 
 export default app

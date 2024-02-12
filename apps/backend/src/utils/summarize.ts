@@ -2,6 +2,8 @@ export const summarize = async (markdown: string, accountId: string, token: stri
 
     const url = `https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run/@cf/meta/llama-2-7b-chat-fp16`;
 
+    console.log(markdown)
+
     const response: {
         result: {
             response: string
@@ -16,7 +18,7 @@ export const summarize = async (markdown: string, accountId: string, token: stri
             messages: [
                 {
                     role: "system",
-                    content: "Generate a summary based on the given text. \nOutput only the summary.",
+                    content: "Generate a summary based on the given text. \nOutput only the summary. \n ** Please Output in Japanese. **",
                 },
                 {
                     role: "user",

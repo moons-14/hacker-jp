@@ -10,7 +10,7 @@ export const cfTranslate = async (text: string, accountId: string, token: string
         translatedTextArray.push(translated);
     }
 
-    return translatedTextArray.join("。");
+    return translatedTextArray.join(" ");
 }
 
 const cfTranslateRequest = async (text: string, accountId: string, token: string) => {
